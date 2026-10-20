@@ -1,3 +1,4 @@
+```yaml
 name: Deploy To Ubuntu
 
 on:
@@ -38,25 +39,29 @@ jobs:
 
       - name: Stop Old Application
         run: |
-          if [ -f /home/ubuntu/spring-demo/app.pid ]; then
-            PID=$(cat /home/ubuntu/spring-demo/app.pid)
+          APP_DIR="/home/spring-demo/githubActionDemo"
+
+          if [ -f "$APP_DIR/app.pid" ]; then
+            PID=$(cat "$APP_DIR/app.pid")
 
             if kill -0 "$PID" 2>/dev/null; then
               kill "$PID"
               sleep 2
             fi
 
-            rm -f /home/ubuntu/spring-demo/app.pid
+            rm -f "$APP_DIR/app.pid"
           fi
 
       - name: Copy New Application
         run: |
-          mkdir -p /home/ubuntu/spring-demo
-          cp target/app.jar /home/ubuntu/spring-demo/app.jar
+          APP_DIR="/home/spring-demo/githubActionDemo"
+
+          mkdir -p "$APP_DIR"
+          cp target/app.jar "$APP_DIR/app.jar"
 
       - name: Start Application
         run: |
-          cd /home/ubuntu/spring-demo
+          cd /home/spring-demo/githubActionDemo
 
           RUNNER_TRACKING_ID="" nohup java -jar app.jar > app.log 2>&1 &
 
@@ -66,3 +71,4 @@ jobs:
         run: |
           sleep 5
           curl --fail http://localhost:8080/hello
+```
