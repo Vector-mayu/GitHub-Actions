@@ -45,20 +45,27 @@ jobs:
 
             if [[ "$PID" =~ ^[0-9]+$ ]] &&
                [ "$PID" -gt 1 ] &&
-               kill -0 "$PID" 2>/dev/null; then
+               [ -r "/proc/$PID/cmdline" ]; then
 
-              kill "$PID"
+              CMD=$(tr '\0' ' ' < "/proc/$PID/cmdline")
 
-              for i in {1..10}; do
-                if ! kill -0 "$PID" 2>/dev/null; then
-                  break
+              if [[ "$CMD" == *"app.jar"* ]] &&
+                 [[ "$CMD" == *"--server.port=8081"* ]]; then
+                kill "$PID"
+
+                for i in {1..10}; do
+                  if ! kill -0 "$PID" 2>/dev/null; then
+                    break
+                  fi
+                  sleep 1
+                done
+
+                if kill -0 "$PID" 2>/dev/null; then
+                  echo "ERROR: Old application did not stop"
+                  exit 1
                 fi
-                sleep 1
-              done
-
-              if kill -0 "$PID" 2>/dev/null; then
-                echo "ERROR: Old application did not stop"
-                exit 1
+              else
+                echo "PID file does not identify our port 8081 application."
               fi
             fi
 
@@ -83,7 +90,7 @@ jobs:
         run: |
           cd /home/spring-demo/githubActionDemo
 
-          RUNNER_TRACKING_ID="" nohup java -jar app.jar > app.log 2>&1 &
+          RUNNER_TRACKING_ID="" nohup java -jar app.jar --server.port=8081 > app.log 2>&1 &
 
           echo $! > app.pid
 
@@ -92,10 +99,11 @@ jobs:
           APP_DIR="/home/spring-demo/githubActionDemo"
 
           for i in {1..30}; do
-            if curl --fail --silent http://localhost:8080/hello; then
+            if curl --fail --silent http://localhost:8081/hello; then
               echo "Deployment successful!"
               exit 0
             fi
+
             sleep 1
           done
 
